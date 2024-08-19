@@ -1,0 +1,27 @@
+{
+  "tabWidth": 2,
+  "printWidth": 120,
+  "singleQuote": false,
+  "semi": false,
+  "plugins": ["prettier-plugin-tailwindcss"],
+  "overrides": [
+    {
+      "files": "Icons.tsx",
+      "options": {
+        "printWidth": 100000
+      }
+    },
+    {
+      "files": "useSwap.ts",
+      "options": {
+        "printWidth": 150
+      }
+    },
+    {
+      "files": "index.html",
+      "options": {
+        "printWidth": 100000
+      }
+    }
+  ]
+}
