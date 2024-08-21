@@ -100,3 +100,33 @@ input[type="number"] {
 }
 
 /* Customize */
+nav button {
+  width: 95px;
+}
+
+@media (max-width: 600px) {
+  body {
+    padding-top: 20px;
+  }
+
+  .search-contain {
+    max-width: 960px;
+    margin: auto;
+    padding: 0 10px;
+  }
+
+  nav {
+    flex-direction: column;
+  }
+
+  nav button {
+    width: 432px;
+    margin-bottom: 5px;
+  }
+
+  .gallery {
+    grid-template-columns: repeat(auto-fill, minmax(0, 190px));
+    gap: 25px;
+    padding: 0 10px;
+  }
+}

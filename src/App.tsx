@@ -55,6 +55,24 @@ const App: React.FC = () => {
     fetchTokens();
   }, [category]);
 
+  useEffect(() => {
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    if (pathParts.length > 0) {
+      const newCategory = pathParts[0];
+      const newSearchTerm = pathParts.slice(1).join(' ');
+
+      if (Object.keys(tokensURL).includes(newCategory)) {
+        setCategory(newCategory);
+        setSearchTerm(newSearchTerm);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const newPath = `${window.location.origin}/${category}/${searchTerm}`;
+    window.history.pushState({}, '', newPath);
+  }, [category, searchTerm]);
+
   const handleClick = (newCategory: string) => {
     setCategory(newCategory);
     setSearchTerm('');
@@ -105,7 +123,7 @@ const App: React.FC = () => {
 
   return (
     <header className="text-center font-sans text-gray-700">
-      <h1 className="font-lobster text-[96px] italic font-bold text-[#2B2B47] mt-[48px] mb-[48px]">SnapShot</h1>
+      <h1 className="font-lobster text-[65px] italic font-bold text-[#2B2B47] mt-[48px] mb-[48px]">SnapShot</h1>
       <div className="flex items-center justify-center mt-[24px]">
         <input
           type="text"
@@ -113,7 +131,7 @@ const App: React.FC = () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="h-[36px] w-[640px] font-sans text-[14px] rounded-l-lg pl-[8px] border-none outline-none bg-gray-200 hover:bg-gray-300 transition duration-300"
+          className="h-[36px] w-[400px] font-sans text-[14px] rounded-l-lg pl-[10px] border-none outline-none bg-gray-200 hover:bg-gray-300 transition duration-300"
         />
         <button
           type="submit"
@@ -125,22 +143,22 @@ const App: React.FC = () => {
         </button>
       </div>
       <nav className="my-[40px] flex items-center justify-center">
-        <button onClick={() => handleClick('Ethereum')} className="w-[95px] h-[32px] mx-[8px] font-sans text-[14px] font-bold bg-[#2B2B47] text-white rounded-lg cursor-pointer">
+        <button onClick={() => handleClick('Ethereum')} className="h-[32px] mx-[8px] font-sans text-[14px] font-bold bg-[#2B2B47] text-white rounded-lg cursor-pointer">
           Ethereum
         </button>
-        <button onClick={() => handleClick('Arbitrum')} className="w-[95px] h-[32px] mx-[8px] font-sans text-[14px] font-bold bg-[#2B2B47] text-white rounded-lg cursor-pointer">
+        <button onClick={() => handleClick('Arbitrum')} className="h-[32px] mx-[8px] font-sans text-[14px] font-bold bg-[#2B2B47] text-white rounded-lg cursor-pointer">
           Arbitrum
         </button>
-        <button onClick={() => handleClick('Optimism')} className="w-[95px] h-[32px] mx-[8px] font-sans text-[14px] font-bold bg-[#2B2B47] text-white rounded-lg cursor-pointer">
+        <button onClick={() => handleClick('Optimism')} className="h-[32px] mx-[8px] font-sans text-[14px] font-bold bg-[#2B2B47] text-white rounded-lg cursor-pointer">
           Optimism
         </button>
-        <button onClick={() => handleClick('Bsc')} className="w-[95px] h-[32px] mx-[8px] font-sans text-[14px] font-bold bg-[#2B2B47] text-white rounded-lg cursor-pointer">
+        <button onClick={() => handleClick('Bsc')} className="h-[32px] mx-[8px] font-sans text-[14px] font-bold bg-[#2B2B47] text-white rounded-lg cursor-pointer">
           Bsc
         </button>
       </nav>
       <main>
-        <h2 className="text-[64px] font-bold my-[40px]">{filteredTokens.length > 0 ? `${category} Tokens` : message}</h2>
-        <div className="grid grid-cols-[repeat(auto-fit,_minmax(0,_150px))] gap-[32px] mb-[32px] px-[208px] justify-center">
+        <h2 className="text-[30px] font-bold my-[40px]">{filteredTokens.length > 0 ? `${category} Tokens` : message}</h2>
+        <div className="grid grid-cols-[repeat(auto-fit,_minmax(0,_150px))] gap-[30px] mb-[30px] px-[130px] pb-[30px] justify-center">
           {isLoading
             ? Array.from({ length: 8 }).map((_, index) => <Loading key={index} />)
             : filteredTokens.length > 0
@@ -154,10 +172,10 @@ const App: React.FC = () => {
                   <img
                     src={token.logoURI}
                     alt={`${category} ${token.name}`}
-                    className={`w-full h-full object-contain rounded-lg transition-opacity ease-in-out duration-[1500ms] transform scale-[0.8] ${loadedTokens.includes(index) || errorTokens.includes(index) ? 'opacity-110' : 'opacity-100'}`}
+                    className={`w-full h-full object-contain rounded-lg transition-opacity ease-in-out duration-[1,5s] transform scale-[0.8] transform hover:scale-110 transition-transform ${loadedTokens.includes(index) || errorTokens.includes(index) ? 'loaded' : ''}`}
                     onLoad={() => handleTokenLoad(index)}
                     onError={(e) => {
-                      e.target.src = placeholderToken;
+                      (e.target as HTMLImageElement).src = placeholderToken;
                       handleTokenError(index);
                     }}
                   />
