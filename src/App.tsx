@@ -40,11 +40,11 @@ const App: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>(searchQuery);
   const [tokens, setTokens] = useState<Token[]>([]);
-  const [errorTokens, setErrorTokens] = useState<number[]>([]);
   const [filteredTokens, setFilteredTokens] = useState<Token[]>([]);
   const [message, setMessage] = useState<string>('');
   const [isLoading, setLoading] = useState<boolean>(true);
   const [loadedTokens, setLoadedTokens] = useState<number[]>([]);
+  const [errorTokens, setErrorTokens] = useState<number[]>([]);
   const [hoveredToken, setHoveredToken] = useState<Token | null>(null);
 
   useEffect(() => {
@@ -68,15 +68,30 @@ const App: React.FC = () => {
       setLoadedTokens([]);
       setMessage('');
 
-      if (!category) return;
-
-      try {
-        const response = await fetch(`https://raw.githubusercontent.com/viaprotocol/tokenlists/main/tokenlists/${category}.json`);
-        const data: Token[] = await response.json();
-        setTokens(data);
-        setFilteredTokens(data);
-      } catch (error) {
-        setMessage('Failed to load tokens');
+      if (category) {
+        try {
+          const response = await fetch(`https://raw.githubusercontent.com/viaprotocol/tokenlists/main/tokenlists/${category}.json`);
+          const data: Token[] = await response.json();
+          setTokens(data);
+          setFilteredTokens(data);
+        } catch (error) {
+          setMessage('Failed to load tokens');
+        }
+      } else {
+        try {
+          const response = await fetch('https://api.github.com/repos/viaprotocol/tokenlists/contents/tokenlists');
+          const data = await response.json();
+          const tokenPromises = data.map(async (file: any) => {
+            const response = await fetch(`https://raw.githubusercontent.com/viaprotocol/tokenlists/main/tokenlists/${file.name}`);
+            return response.json();
+          });
+          const tokensArray = await Promise.all(tokenPromises);
+          const allTokens = tokensArray.flat();
+          setTokens(allTokens);
+          setFilteredTokens(allTokens);
+        } catch (error) {
+          setMessage('Failed to load tokens');
+        }
       }
 
       setLoading(false);
@@ -86,7 +101,9 @@ const App: React.FC = () => {
   }, [category]);
 
   useEffect(() => {
-    setSearchTerm(searchQuery);
+    if (searchQuery !== searchTerm) {
+      setSearchTerm(searchQuery);
+    }
   }, [searchQuery]);
 
   const handleClick = (newCategory: string) => {
@@ -111,7 +128,6 @@ const App: React.FC = () => {
       }
       setLoading(false);
     }, 1000);
-    navigate(`/${category}/${searchTerm}`);
   };
 
   const handleTokenLoad = (index: number) => {
@@ -134,6 +150,7 @@ const App: React.FC = () => {
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       handleSearch();
+      navigate(`/${category}/${searchTerm}`);
     }
   };
 
@@ -151,7 +168,10 @@ const App: React.FC = () => {
         />
         <button
           type="submit"
-          onClick={handleSearch}
+          onClick={() => {
+            handleSearch();
+            navigate(`/${category}/${searchTerm}`);
+          }}
           className="h-[36px] bg-[#2B2B47] text-white rounded-r-lg border-none outline-none cursor-pointer flex items-center justify-center px-[12px]"
         >
           <svg height="32" width="32"><path d="M19.427 21.427a8.5 8.5 0 1 1 2-2l5.585 5.585c.55.55.546 1.43 0 1.976l-.024.024a1.399 1.399 0 0 1-1.976 0l-5.585-5.585zM14.5 21a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13z" fill="#ffffff" fill-rule="evenodd"></path>
@@ -160,7 +180,7 @@ const App: React.FC = () => {
       </div>
       <CategoryButtons categories={categories} onClick={handleClick} />
       <main>
-        <h2 className="text-[30px] font-bold mb-[40px]">{filteredTokens.length > 0 ? `${category} Tokens` : category ? `No Tokens in ${category}` : message}</h2>
+        <h2 className="text-[30px] font-bold mb-[40px]">{filteredTokens.length > 0 ? `${category ? category : 'All'} Tokens` : category ? `No Tokens in ${category}` : message}</h2>
         <div className="grid grid-cols-[repeat(auto-fit,_minmax(0,_150px))] gap-[30px] px-[130px] pb-[70px] justify-center">
           {isLoading
             ? Array.from({ length: 8 }).map((_, index) => <Loading key={index} />)
