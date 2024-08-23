@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import placeholderToken from './question-mark.png';
 
 interface Token {
@@ -12,20 +13,32 @@ interface Token {
   listedIn?: string[];
 }
 
-const tokensURL: { [key: string]: string } = {
-  Ethereum: 'https://raw.githubusercontent.com/viaprotocol/tokenlists/main/tokenlists/ethereum.json',
-  Arbitrum: 'https://raw.githubusercontent.com/viaprotocol/tokenlists/main/tokenlists/arbitrum.json',
-  Optimism: 'https://raw.githubusercontent.com/viaprotocol/tokenlists/main/tokenlists/optimism.json',
-  Bsc: 'https://raw.githubusercontent.com/viaprotocol/tokenlists/main/tokenlists/bsc.json',
-};
-
 const Loading: React.FC = () => {
   return <div className="w-full h-[150px] bg-gray-300 rounded-lg animate-pulse"></div>;
 };
 
+const CategoryButtons: React.FC<{ categories: string[], onClick: (newCategory: string) => void }> = ({ categories, onClick }) => {
+  return (
+    <nav className="grid grid-cols-[repeat(auto-fit,_minmax(0,_125px))] gap-[20px] py-[30px] mx-[80px] items-center justify-center">
+      {categories.map((category) => (
+        <button
+          key={category}
+          onClick={() => onClick(category)}
+          className="w-[125px] h-[32px] mx-[8px] font-sans text-[14px] font-bold bg-[#2B2B47] text-white rounded-lg cursor-pointer"
+        >
+          {category}
+        </button>
+      ))}
+    </nav>
+  );
+};
+
 const App: React.FC = () => {
-  const [category, setCategory] = useState<string>('Ethereum');
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const { category = '', searchQuery = '' } = useParams<{ category: string; searchQuery: string }>();
+  const navigate = useNavigate();
+
+  const [categories, setCategories] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>(searchQuery);
   const [tokens, setTokens] = useState<Token[]>([]);
   const [errorTokens, setErrorTokens] = useState<number[]>([]);
   const [filteredTokens, setFilteredTokens] = useState<Token[]>([]);
@@ -35,13 +48,30 @@ const App: React.FC = () => {
   const [hoveredToken, setHoveredToken] = useState<Token | null>(null);
 
   useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('https://api.github.com/repos/viaprotocol/tokenlists/contents/tokenlists');
+        const data = await response.json();
+        const fetchedCategories = data.map((file: any) => file.name.replace('.json', ''));
+        setCategories(fetchedCategories);
+      } catch (error) {
+        setMessage('Failed to load categories');
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
     const fetchTokens = async () => {
       setLoading(true);
       setLoadedTokens([]);
       setMessage('');
 
+      if (!category) return;
+
       try {
-        const response = await fetch(tokensURL[category]);
+        const response = await fetch(`https://raw.githubusercontent.com/viaprotocol/tokenlists/main/tokenlists/${category}.json`);
         const data: Token[] = await response.json();
         setTokens(data);
         setFilteredTokens(data);
@@ -56,26 +86,11 @@ const App: React.FC = () => {
   }, [category]);
 
   useEffect(() => {
-    const pathParts = window.location.pathname.split('/').filter(Boolean);
-    if (pathParts.length > 0) {
-      const newCategory = pathParts[0];
-      const newSearchTerm = pathParts.slice(1).join(' ');
-
-      if (Object.keys(tokensURL).includes(newCategory)) {
-        setCategory(newCategory);
-        setSearchTerm(newSearchTerm);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    const newPath = `${window.location.origin}/${category}/${searchTerm}`;
-    window.history.pushState({}, '', newPath);
-  }, [category, searchTerm]);
+    setSearchTerm(searchQuery);
+  }, [searchQuery]);
 
   const handleClick = (newCategory: string) => {
-    setCategory(newCategory);
-    setSearchTerm('');
+    navigate(`/${newCategory}/${searchTerm}`);
   };
 
   const handleSearch = () => {
@@ -96,6 +111,7 @@ const App: React.FC = () => {
       }
       setLoading(false);
     }, 1000);
+    navigate(`/${category}/${searchTerm}`);
   };
 
   const handleTokenLoad = (index: number) => {
@@ -123,7 +139,7 @@ const App: React.FC = () => {
 
   return (
     <header className="text-center font-sans text-gray-700">
-      <h1 className="font-lobster text-[65px] italic font-bold text-[#2B2B47] mt-[48px] mb-[48px]">SnapShot</h1>
+      <h1 className="font-lobster text-[65px] italic font-bold text-[#2B2B47] mt-[48px] mb-[48px]">Token List</h1>
       <div className="flex items-center justify-center mt-[24px]">
         <input
           type="text"
@@ -142,23 +158,10 @@ const App: React.FC = () => {
           </svg>
         </button>
       </div>
-      <nav className="my-[40px] flex items-center justify-center">
-        <button onClick={() => handleClick('Ethereum')} className="h-[32px] mx-[8px] font-sans text-[14px] font-bold bg-[#2B2B47] text-white rounded-lg cursor-pointer">
-          Ethereum
-        </button>
-        <button onClick={() => handleClick('Arbitrum')} className="h-[32px] mx-[8px] font-sans text-[14px] font-bold bg-[#2B2B47] text-white rounded-lg cursor-pointer">
-          Arbitrum
-        </button>
-        <button onClick={() => handleClick('Optimism')} className="h-[32px] mx-[8px] font-sans text-[14px] font-bold bg-[#2B2B47] text-white rounded-lg cursor-pointer">
-          Optimism
-        </button>
-        <button onClick={() => handleClick('Bsc')} className="h-[32px] mx-[8px] font-sans text-[14px] font-bold bg-[#2B2B47] text-white rounded-lg cursor-pointer">
-          Bsc
-        </button>
-      </nav>
+      <CategoryButtons categories={categories} onClick={handleClick} />
       <main>
-        <h2 className="text-[30px] font-bold my-[40px]">{filteredTokens.length > 0 ? `${category} Tokens` : message}</h2>
-        <div className="grid grid-cols-[repeat(auto-fit,_minmax(0,_150px))] gap-[30px] mb-[30px] px-[130px] pb-[30px] justify-center">
+        <h2 className="text-[30px] font-bold mb-[40px]">{filteredTokens.length > 0 ? `${category} Tokens` : category ? `No Tokens in ${category}` : message}</h2>
+        <div className="grid grid-cols-[repeat(auto-fit,_minmax(0,_150px))] gap-[30px] px-[130px] pb-[70px] justify-center">
           {isLoading
             ? Array.from({ length: 8 }).map((_, index) => <Loading key={index} />)
             : filteredTokens.length > 0
@@ -194,7 +197,8 @@ const App: React.FC = () => {
                   )}
                 </div>
               ))
-              : null}
+              : <p className="text-[18px] text-gray-500">{message}</p>
+          }
         </div>
       </main>
     </header>

@@ -115,15 +115,6 @@ nav button {
     padding: 0 10px;
   }
 
-  nav {
-    flex-direction: column;
-  }
-
-  nav button {
-    width: 432px;
-    margin-bottom: 5px;
-  }
-
   .gallery {
     grid-template-columns: repeat(auto-fill, minmax(0, 190px));
     gap: 25px;
