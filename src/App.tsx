@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import placeholderToken from './question-mark.png';
+import { FixedSizeList, ListChildComponentProps } from 'react-window';
+
+const placeholderToken = "https://img.freepik.com/free-vector/question-mark-modern-background-clearing-doubts-concept_1017-43064.jpg";
 
 interface Token {
   symbol: string;
@@ -14,7 +16,7 @@ interface Token {
 }
 
 const Loading: React.FC = () => {
-  return <div className="w-full h-[150px] bg-gray-300 rounded-lg animate-pulse"></div>;
+  return <div className="w-full h-[68px] bg-gray-300 rounded-lg animate-pulse"></div>;
 };
 
 const CategoryButtons: React.FC<{ categories: string[], selectedCategory: string, onClick: (newCategory: string) => void }> = ({ categories, selectedCategory, onClick }) => {
@@ -30,6 +32,55 @@ const CategoryButtons: React.FC<{ categories: string[], selectedCategory: string
         </button>
       ))}
     </nav>
+  );
+};
+
+const TokenItem: React.FC<ListChildComponentProps<{ tokens: Token[]; handleMouseEnter: (token: Token) => void; handleMouseLeave: () => void; loadedTokens: number[]; errorTokens: number[]; handleTokenLoad: (index: number) => void; handleTokenError: (index: number) => void; hoveredToken: Token | null; category: string; }>> = ({ index, style, data }) => {
+  const {
+    tokens,
+    handleMouseEnter,
+    handleMouseLeave,
+    loadedTokens,
+    errorTokens,
+    handleTokenLoad,
+    handleTokenError,
+    hoveredToken,
+    category,
+  } = data;
+
+  const token = tokens[index];
+
+  return (
+    <div
+      style={style}
+      className="relative inline-block m-[8px]"
+      onMouseEnter={() => handleMouseEnter(token)}
+      onMouseLeave={handleMouseLeave}
+    >
+      <img
+        src={token.logoURI}
+        alt={`${category} ${token.name}`}
+        className={`w-full h-full object-contain rounded-lg transition-opacity ease-in-out duration-[1.5s] transform scale-[0.8] transform hover:scale-110 transition-transform ${loadedTokens.includes(index) || errorTokens.includes(index) ? 'loaded' : ''}`}
+        onLoad={() => handleTokenLoad(index)}
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = placeholderToken;
+          handleTokenError(index);
+        }}
+      />
+      {hoveredToken === token && (
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white text-[12px] p-[8px] rounded-lg whitespace-nowrap z-10">
+          <p>
+            <strong>Name:</strong> {token.name}
+          </p>
+          <p>
+            <strong>Logo URI:</strong>{' '}
+            <a href={token.logoURI} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">
+              Open Image
+            </a>
+          </p>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -138,6 +189,20 @@ const App: React.FC = () => {
     }
   };
 
+  const itemData = {
+    tokens: filteredTokens,
+    handleMouseEnter,
+    handleMouseLeave,
+    loadedTokens,
+    errorTokens,
+    handleTokenLoad,
+    handleTokenError,
+    hoveredToken,
+    category,
+  };
+
+  const listHeight = Math.min(500, filteredTokens.length * 68);
+
   return (
     <header className="text-center font-sans text-gray-700">
       <h1 className="font-lobster text-[65px] italic font-bold text-[#2B2B47] mt-[48px] mb-[48px]">Token List</h1>
@@ -161,49 +226,28 @@ const App: React.FC = () => {
       <CategoryButtons categories={categories} selectedCategory={category} onClick={handleClick} />
       <main>
         <h2 className="text-[30px] font-bold mb-[40px]">{filteredTokens.length > 0 ? `${category} Tokens` : category ? `No Tokens in ${category}` : message}</h2>
-        <div className="grid grid-cols-[repeat(auto-fit,_minmax(0,_150px))] gap-[30px] px-[130px] pb-[70px] justify-center">
-          {isLoading
-            ? Array.from({ length: 8 }).map((_, index) => <Loading key={index} />)
-            : filteredTokens.length > 0
-              ? filteredTokens.map((token, index) => (
-                <div
-                  key={index}
-                  className="relative inline-block m-[8px]"
-                  onMouseEnter={() => handleMouseEnter(token)}
-                  onMouseLeave={handleMouseLeave}
-                >
-                  <img
-                    src={token.logoURI}
-                    alt={`${category} ${token.name}`}
-                    className={`w-full h-full object-contain rounded-lg transition-opacity ease-in-out duration-[1,5s] transform scale-[0.8] transform hover:scale-110 transition-transform ${loadedTokens.includes(index) || errorTokens.includes(index) ? 'loaded' : ''}`}
-                    onLoad={() => handleTokenLoad(index)}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = placeholderToken;
-                      handleTokenError(index);
-                    }}
-                  />
-                  {hoveredToken === token && (
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white text-[12px] p-[8px] rounded-lg whitespace-nowrap z-10">
-                      <p>
-                        <strong>Name:</strong> {token.name}
-                      </p>
-                      <p>
-                        <strong>Logo URI:</strong>{' '}
-                        <a href={token.logoURI} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">
-                          Open Image
-                        </a>
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ))
-              : <p className="text-[18px] text-gray-500">{message}</p>
-          }
-        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-[repeat(auto-fit,_minmax(0,_150px))] gap-[30px] px-[130px] pb-[70px] justify-center">
+            {Array.from({ length: 8 }).map((_, index) => <Loading key={index} />)}
+          </div>
+        ) : filteredTokens.length > 0 ? (
+          <div className="relative -mx-4 border-t-1 border-t-background">
+            <FixedSizeList
+              height={listHeight}
+              itemCount={filteredTokens.length}
+              itemSize={68}
+              width="100%"
+              itemData={itemData}
+            >
+              {TokenItem}
+            </FixedSizeList>
+          </div>
+        ) : (
+          <p className="text-[18px] text-gray-500">{message}</p>
+        )}
       </main>
     </header>
   );
 };
-
 
 export default App;
