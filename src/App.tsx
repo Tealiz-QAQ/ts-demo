@@ -58,7 +58,7 @@ const TokenItem: React.FC<GridChildComponentProps<{ tokens: Token[]; handleMouse
   return (
     <div
       style={style}
-      className="relative inline-block]"
+      className="relative flex justify-center items-center inline-block"
       onMouseEnter={() => handleMouseEnter(token)}
       onMouseLeave={handleMouseLeave}
     >
@@ -194,11 +194,11 @@ const App: React.FC = () => {
     }
   };
 
-  const [gridWidth, setGridWidth] = useState<number>(window.innerWidth - 140); // Chiều rộng của grid, trừ đi 140px (60px padding mỗi bên)
+  const [gridWidth, setGridWidth] = useState<number>(window.innerWidth - 50);
 
   useEffect(() => {
     const handleResize = () => {
-      setGridWidth(window.innerWidth - 140); // Chiều rộng của grid, trừ đi 140px (60px padding mỗi bên)
+      setGridWidth(window.innerWidth - 50);
     };
 
     window.addEventListener('resize', handleResize);
@@ -246,9 +246,9 @@ const App: React.FC = () => {
       </div>
 
       <CategoryButtons categories={categories} selectedCategory={category} onClick={handleClick} />
-      <div className='px-[50px] pb-[50px] overflow-x-hidden overflow-y-hidden'>
-        <h2 className="text-[30px] font-bold py-[30px]">{filteredTokens.length > 0 ? `${category} Tokens` : category ? `No Tokens in ${category}` : message}</h2>
 
+      <h2 className="text-[30px] font-bold items-center justify-center py-[30px]">{filteredTokens.length > 0 ? `${category} Tokens` : category ? `No Tokens in ${category}` : message}</h2>
+      <div className='pb-[50px] mx-[50px] overflow-x-auto overflow-y-auto'>
         {isLoading ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-[20px] mx-auto max-w-[800px]">
             {Array.from({ length: 8 }, (_, index) => (
@@ -258,7 +258,10 @@ const App: React.FC = () => {
         ) : filteredTokens.length > 0 ? (
           <FixedSizeGrid
             columnCount={columnCount}
-            columnWidth={gridWidth / columnCount} // Điều chỉnh chiều rộng của mỗi cột
+            columnWidth={gridWidth < 600
+              ? (gridWidth - (columnCount - 1) * 30) / columnCount // Khi chiều rộng nhỏ hơn 600px
+              : ((gridWidth) / columnCount) - 10 // Khi chiều rộng lớn hơn hoặc bằng 600px
+            }
             height={gridHeight}
             rowCount={rowCount}
             rowHeight={115} // Điều chỉnh chiều cao của mỗi hàng
