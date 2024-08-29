@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FixedSizeList, ListChildComponentProps } from 'react-window';
+import { FixedSizeGrid, GridChildComponentProps } from 'react-window';
 
 const placeholderToken = "https://img.freepik.com/free-vector/question-mark-modern-background-clearing-doubts-concept_1017-43064.jpg";
 
@@ -26,7 +26,7 @@ const CategoryButtons: React.FC<{ categories: string[], selectedCategory: string
         <button
           key={category}
           onClick={() => onClick(category)}
-          className={`w-[125px] h-[32px] mx-[8px] font-sans text-[14px] font-bold rounded-lg cursor-pointer ${category === selectedCategory ? 'bg-gray-200 text-blue-1500' : 'bg-[#2B2B47] text-white'}`}
+          className={`w-[125px] h-[32px] font-sans text-[14px] font-bold rounded-lg cursor-pointer ${category === selectedCategory ? 'bg-gray-200 text-blue-1500' : 'bg-[#2B2B47] text-white'}`}
         >
           {category}
         </button>
@@ -35,7 +35,7 @@ const CategoryButtons: React.FC<{ categories: string[], selectedCategory: string
   );
 };
 
-const TokenItem: React.FC<ListChildComponentProps<{ tokens: Token[]; handleMouseEnter: (token: Token) => void; handleMouseLeave: () => void; loadedTokens: number[]; errorTokens: number[]; handleTokenLoad: (index: number) => void; handleTokenError: (index: number) => void; hoveredToken: Token | null; category: string; }>> = ({ index, style, data }) => {
+const TokenItem: React.FC<GridChildComponentProps<{ tokens: Token[]; handleMouseEnter: (token: Token) => void; handleMouseLeave: () => void; loadedTokens: number[]; errorTokens: number[]; handleTokenLoad: (index: number) => void; handleTokenError: (index: number) => void; hoveredToken: Token | null; category: string; columnCount: number }>> = ({ columnIndex, rowIndex, style, data }) => {
   const {
     tokens,
     handleMouseEnter,
@@ -48,19 +48,24 @@ const TokenItem: React.FC<ListChildComponentProps<{ tokens: Token[]; handleMouse
     category,
   } = data;
 
+  const index = rowIndex * data.columnCount + columnIndex;
   const token = tokens[index];
+
+  if (!token) {
+    return null;
+  }
 
   return (
     <div
       style={style}
-      className="relative inline-block m-[8px]"
+      className="relative inline-block]"
       onMouseEnter={() => handleMouseEnter(token)}
       onMouseLeave={handleMouseLeave}
     >
       <img
         src={token.logoURI}
         alt={`${category} ${token.name}`}
-        className={`w-full h-full object-contain rounded-lg transition-opacity ease-in-out duration-[1.5s] transform scale-[0.8] transform hover:scale-110 transition-transform ${loadedTokens.includes(index) || errorTokens.includes(index) ? 'loaded' : ''}`}
+        className={`w-full h-full object-contain rounded-lg transition-opacity ease-in-out duration-[1.3s] transform scale-[0.7] transform hover:scale-100 transition-transform ${loadedTokens.includes(index) || errorTokens.includes(index) ? 'loaded' : ''}`}
         onLoad={() => handleTokenLoad(index)}
         onError={(e) => {
           (e.target as HTMLImageElement).src = placeholderToken;
@@ -189,6 +194,19 @@ const App: React.FC = () => {
     }
   };
 
+  const [gridWidth, setGridWidth] = useState<number>(window.innerWidth - 140); // Chiều rộng của grid, trừ đi 140px (60px padding mỗi bên)
+
+  useEffect(() => {
+    const handleResize = () => {
+      setGridWidth(window.innerWidth - 140); // Chiều rộng của grid, trừ đi 140px (60px padding mỗi bên)
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   const itemData = {
     tokens: filteredTokens,
     handleMouseEnter,
@@ -199,14 +217,17 @@ const App: React.FC = () => {
     handleTokenError,
     hoveredToken,
     category,
+    columnCount: Math.floor(gridWidth / 130), // 100px là chiều rộng của mỗi cột + 30px khoảng cách
   };
 
-  const listHeight = Math.min(500, filteredTokens.length * 68);
+  const columnCount = itemData.columnCount;
+  const rowCount = Math.ceil(filteredTokens.length / columnCount);
+  const gridHeight = Math.min(500, rowCount * 115); // 85px là chiều cao của mỗi hàng + 30px khoảng cách
 
   return (
     <header className="text-center font-sans text-gray-700">
-      <h1 className="font-lobster text-[65px] italic font-bold text-[#2B2B47] mt-[48px] mb-[48px]">Token List</h1>
-      <div className="flex items-center justify-center mt-[24px]">
+      <h1 className="font-lobster text-[65px] italic font-bold text-[#2B2B47] py-[48px]">Token List</h1>
+      <div className="flex items-center justify-center py-[24px]">
         <input
           type="text"
           placeholder="Search..."
@@ -223,29 +244,33 @@ const App: React.FC = () => {
           <svg height="32" width="32"><path d="M19.427 21.427a8.5 8.5 0 1 1 2-2l5.585 5.585c.55.55.546 1.43 0 1.976l-.024.024a1.399 1.399 0 0 1-1.976 0l-5.585-5.585zM14.5 21a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13z" fill="#ffffff" fill-rule="evenodd"></path></svg>
         </button>
       </div>
+
       <CategoryButtons categories={categories} selectedCategory={category} onClick={handleClick} />
-      <main>
-        <h2 className="text-[30px] font-bold mb-[40px]">{filteredTokens.length > 0 ? `${category} Tokens` : category ? `No Tokens in ${category}` : message}</h2>
+      <div className='px-[50px] pb-[50px] overflow-x-hidden overflow-y-hidden'>
+        <h2 className="text-[30px] font-bold py-[30px]">{filteredTokens.length > 0 ? `${category} Tokens` : category ? `No Tokens in ${category}` : message}</h2>
+
         {isLoading ? (
-          <div className="grid grid-cols-[repeat(auto-fit,_minmax(0,_150px))] gap-[30px] px-[130px] pb-[70px] justify-center">
-            {Array.from({ length: 8 }).map((_, index) => <Loading key={index} />)}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-[20px] mx-auto max-w-[800px]">
+            {Array.from({ length: 8 }, (_, index) => (
+              <Loading key={index} />
+            ))}
           </div>
         ) : filteredTokens.length > 0 ? (
-          <div className="relative -mx-4 border-t-1 border-t-background">
-            <FixedSizeList
-              height={listHeight}
-              itemCount={filteredTokens.length}
-              itemSize={68}
-              width="100%"
-              itemData={itemData}
-            >
-              {TokenItem}
-            </FixedSizeList>
-          </div>
+          <FixedSizeGrid
+            columnCount={columnCount}
+            columnWidth={gridWidth / columnCount} // Điều chỉnh chiều rộng của mỗi cột
+            height={gridHeight}
+            rowCount={rowCount}
+            rowHeight={115} // Điều chỉnh chiều cao của mỗi hàng
+            width={gridWidth} // Điều chỉnh chiều rộng của grid
+            itemData={itemData}
+          >
+            {TokenItem}
+          </FixedSizeGrid>
         ) : (
-          <p className="text-[18px] text-gray-500">{message}</p>
+          <div className="text-[20px]">{message}</div>
         )}
-      </main>
+      </div>
     </header>
   );
 };
